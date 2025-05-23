@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clasificador de Formas</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ml5@0.12.2/dist/ml5.min.js"></script>
+
+</head>
+<body>
+<script>
+  let triangulo_rectangulo_a = [];
+  let triangulo_rectangulo_b = [];
+  let triangulo_rectangulo_c = [];
+  let triangulo_rectangulo_d = [];
+
+  let triangulo_acutangulo_a = [];
+  let triangulo_acutangulo_b = [];
+
+  // Objeto ml5
+  let ShapeClassifier;
+
+  function preload() {
+    for (let i = 0; i < 100; i++) {
+      let index = nf((i + 1), 3, 0); // 001, 002, ..., 100
+      triangulo_rectangulo_a[i] = loadImage(`Processing/data/triangulo-rectangulo-a-${index}.png`, img => img.resize(64, 64));
+      triangulo_rectangulo_b[i] = loadImage(`Processing/data/triangulo-rectangulo-b-${index}.png`, img => img.resize(64, 64));
+      triangulo_rectangulo_c[i] = loadImage(`Processing/data/triangulo-rectangulo-c-${index}.png`, img => img.resize(64, 64));
+      triangulo_rectangulo_d[i] = loadImage(`Processing/data/triangulo-rectangulo-d-${index}.png`, img => img.resize(64, 64));
+      triangulo_acutangulo_a[i] = loadImage(`Processing/data/triangulo-acutangulo-a-${index}.png`, img => img.resize(64, 64));
+      triangulo_acutangulo_b[i] = loadImage(`Processing/data/triangulo-acutangulo-b-${index}.png`, img => img.resize(64, 64));
+    }
+  }
+
+  function setup() {
+    // Parámetros del clasificador
+    let options = {
+      inputs: [64, 64, 4], // 64x64 imágenes con 4 canales (RGBA)
+      task: 'imageClassification',
+      debug: true
+    };
+
+    // Inicialización de la red neuronal
+    ShapeClassifier = ml5.neuralNetwork(options);
+
+    // Añadir datos
+    for (let i = 0; i < 100; i++) {
+      ShapeClassifier.addData({ image: triangulo_rectangulo_a[i] }, { label: "triangulo_rectangulo_a" });
+      ShapeClassifier.addData({ image: triangulo_rectangulo_b[i] }, { label: "triangulo_rectangulo_b" });
+      ShapeClassifier.addData({ image: triangulo_rectangulo_c[i] }, { label: "triangulo_rectangulo_c" });
+      ShapeClassifier.addData({ image: triangulo_rectangulo_d[i] }, { label: "triangulo_rectangulo_d" });
+      ShapeClassifier.addData({ image: triangulo_acutangulo_a[i] }, { label: "triangulo_acutangulo_a" });
+      ShapeClassifier.addData({ image: triangulo_acutangulo_b[i] }, { label: "triangulo_acutangulo_b" });
+    }
+
+    // Normalización y entrenamiento
+    ShapeClassifier.normalizeData();
+    ShapeClassifier.train({ epochs: 60 }, finishedTraining);
+  }
+
+  function finishedTraining() {
+    console.log("Entrenamiento finalizado.");
+    // Aquí podrías guardar el modelo o probar una predicción
+    ShapeClassifier.save();
+  }
+</script>
+</body>
+</html>

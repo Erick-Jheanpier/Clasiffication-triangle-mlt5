@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clasificador de Triángulos</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  />
+
+  <!-- p5.js y ml5.js -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.4.0/lib/p5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ml5@0.12.2/dist/ml5.min.js"></script>
+
+  <style>
+    body { background-color: #f8f9fa; }
+    .thumbnail { width: 80px; height: 80px; object-fit: contain; border: 2px solid transparent; border-radius: .25rem; cursor: pointer; }
+    .thumbnail.active { border-color: #0d6efd; box-shadow: 0 0 8px rgba(13,110,253,0.5); }
+    #controls { margin-bottom: 1rem; }
+    #resultBox { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <div class="container py-4">
+    <h1 class="mb-4">Clasificador de Triángulos</h1>
+    <div class="row">
+      <!-- Izquierda: canvas -->
+      <div class="col-md-6">
+        <div id="controls" class="d-flex gap-2">
+          <button id="clearBtn" class="btn btn-secondary">Limpiar</button>
+        </div>
+        <div class="border bg-white" style="width:400px; height:400px; position: relative;">
+          <div id="canvas-container"></div>
+        </div>
+        <div id="resultBox" class="alert alert-info">Dibuja un triángulo a mano alzada.</div>
+      </div>
+
+      <!-- Derecha: miniaturas -->
+      <div class="col-md-6">
+        <h5>Tipos de Triángulo</h5>
+        <div class="row row-cols-3 g-2">
+          <div class="col text-center">
+            <img id="triangulo_rectangulo_a" src="images/triangulo_rectangulo_a.png" class="thumbnail" alt="Rectángulo A">
+            <div>Rect. A</div>
+          </div>
+          <div class="col text-center">
+            <img id="triangulo_rectangulo_b" src="images/triangulo_rectangulo_b.png" class="thumbnail" alt="Rectángulo B">
+            <div>Rect. B</div>
+          </div>
+          <div class="col text-center">
+            <img id="triangulo_rectangulo_c" src="images/triangulo_rectangulo_c.png" class="thumbnail" alt="Rectángulo C">
+            <div>Rect. C</div>
+          </div>
+          <div class="col text-center">
+            <img id="triangulo_rectangulo_d" src="images/triangulo_rectangulo_d.png" class="thumbnail" alt="Rectángulo D">
+            <div>Rect. D</div>
+          </div>
+          <div class="col text-center">
+            <img id="triangulo_acutangulo_a" src="images/triangulo_acutangulo_a.png" class="thumbnail" alt="Acutángulo A">
+            <div>Acu. A</div>
+          </div>
+          <div class="col text-center">
+            <img id="triangulo_acutangulo_b" src="images/triangulo_acutangulo_b.png" class="thumbnail" alt="Acutángulo B">
+            <div>Acu. B</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let ShapeClassifier;
+    let inputImage;
+    let graphics;
+
+    function setup() {
+      const canvas = createCanvas(400, 400);
+      canvas.parent('canvas-container');
+      background(255);
+      graphics = createGraphics(400, 400);
+      graphics.background(255);
+
+      inputImage = createGraphics(64, 64);
+
+      const options = { inputs: [64,64,4], task: 'imageClassification' };
+      ShapeClassifier = ml5.neuralNetwork(options);
+      ShapeClassifier.load({
+        model: 'model/model.json',
+        metadata: 'model/model_meta.json',
+        weights: 'model/model.weights.bin'
+      }, () => {
+        document.getElementById('resultBox').textContent = 'Modelo cargado. Dibuja un triángulo.';
+      });
+
+      document.getElementById('clearBtn').addEventListener('click', () => {
+  // Recargar página para reset completo
+  location.reload();
+});
+    }
+
+    function draw() {
+      // Mostrar dibujo libre
+      image(graphics, 0, 0);
+    }
+
+    function mouseDragged() {
+      graphics.stroke(0);
+      graphics.strokeWeight(8);
+      graphics.line(pmouseX, pmouseY, mouseX, mouseY);
+    }
+
+    function mouseReleased() {
+      // Clasificar al terminar el trazo
+      inputImage.copy(graphics, 0,0,400,400,0,0,64,64);
+      ShapeClassifier.classify({ image: inputImage }, gotResult);
+    }
+
+    function gotResult(err, results) {
+      if (err) {
+        console.error(err);
+        document.getElementById('resultBox').textContent = 'Error en clasificación';
+        return;
+      }
+      const { label, confidence } = results[0];
+      const pct = Math.floor(confidence * 100);
+
+      document.getElementById('resultBox').innerHTML =
+        `Triángulo <strong>${label.replace(/_/g,' ')}</strong> – Precisión: ${pct}%`;
+
+      clearHighlights();
+      const img = document.getElementById(label);
+      if (img) img.classList.add('active');
+
+      const utter = new SpeechSynthesisUtterance(
+        `Triángulo ${label.replace(/_/g,' ')} con precisión del ${pct} por ciento`
+      );
+      utter.lang = 'es-ES';
+      window.speechSynthesis.speak(utter);
+
+      noLoop();
+    }
+
+    function clearHighlights() {
+      document.querySelectorAll('.thumbnail').forEach(el => el.classList.remove('active'));
+    }
+  </script>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
+
